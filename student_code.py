@@ -127,8 +127,27 @@ class KnowledgeBase(object):
         """
         printv("Retracting {!r}", 0, verbose, [fact_or_rule])
         ####################################################
+
+
         # Student code goes here
-        
+
+        if isinstance(fact_or_rule, Fact):
+            fact = fact_or_rule
+            self.facts.remove(fact)
+            for r in fact.supports_rules:
+                r.supported_by.remove(fact)
+                if not r.asserted:
+                    self.kb_retract(r)
+            for f in fact.supports_facts:
+                f.supported_by.remove(fact)
+                if f.asserted and not len(f.supported_by) == 0:
+                    return
+                else:
+                    self.kb_retract(f)
+
+            for fr in fact.supported_by:
+                fr.supports_facts.remove(fact)
+
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
@@ -146,3 +165,18 @@ class InferenceEngine(object):
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
         # Student code goes here
+
+        bindings = match(fact.statement, rule.lhs[0])
+        if bindings:
+            if len(rule.lhs) > 1:
+                lhs = [instantiate(t, bindings) for t in rule.lhs[1:]]
+                rhs = instantiate(rule.rhs, bindings)
+                new_rule = Rule([lhs, rhs], [fact, rule])
+                rule.supports_rules.append(new_rule)
+                fact.supports_rules.append(new_rule)
+                kb.kb_add(new_rule)
+            else:
+                new_fact = Fact(instantiate(rule.rhs, bindings), [fact, rule])
+                fact.supports_facts.append(new_fact)
+                rule.supports_facts.append(new_fact)
+                kb.kb_add(new_fact)
