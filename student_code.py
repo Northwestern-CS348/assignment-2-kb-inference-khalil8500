@@ -132,21 +132,34 @@ class KnowledgeBase(object):
         # Student code goes here
 
         if isinstance(fact_or_rule, Fact):
-            fact = fact_or_rule
-            self.facts.remove(fact)
-            for r in fact.supports_rules:
-                r.supported_by.remove(fact)
-                if not r.asserted:
+            fact = self._get_fact(fact_or_rule)
+            if len(fact.supported_by) <= 1:
+                self.facts.remove(fact)
+                for r in fact.supports_rules:
+                    r.supported_by.remove(fact)
                     self.kb_retract(r)
-            for f in fact.supports_facts:
-                f.supported_by.remove(fact)
-                if f.asserted and not len(f.supported_by) == 0:
-                    return
-                else:
+                for f in fact.supports_facts:
+                    f.supported_by.remove(fact)
                     self.kb_retract(f)
 
-            for fr in fact.supported_by:
-                fr.supports_facts.remove(fact)
+                for fr in fact.supported_by:
+                    fr.supports_facts.remove(fact)
+
+        elif isinstance(fact_or_rule, Rule):
+            rule = self._get_rule(fact_or_rule)
+            if rule.asserted:
+                return
+            if len(rule.supported_by) <= 1:
+                self.rules.remove(rule)
+                for r in rule.supports_rules:
+                    r.supported_by.remove(rule)
+                    self.kb_retract(r)
+                for f in rule.supports_facts:
+                    f.supported_by.remove(rule)
+                    self.kb_retract(f)
+
+                for fr in rule.supported_by:
+                    fr.supports_rules.remove(rule)
 
 
 class InferenceEngine(object):
